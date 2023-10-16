@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 // Struct tag constants
@@ -38,55 +37,41 @@ func ValidateStruct(data interface{}) []ValidationResult {
 		fieldName := fieldType.Name
 		tag := fieldType.Tag
 
-		var messages []string
+		var message string
 
-		if requiredTag := tag.Get(RequiredTag); requiredTag != "" {
-			if fieldValue.IsZero() {
-				messages = append(messages, "Field is required")
-			}
+		if requiredTag := tag.Get(RequiredTag); requiredTag != "" && fieldValue.IsZero() {
+			message = "is required"
 		}
 
 		if maxTag := tag.Get(MaxTag); maxTag != "" {
-			maxValue, err := strconv.Atoi(maxTag)
-			if err == nil && fieldValue.Int() > int64(maxValue) {
-				messages = append(messages, "Value exceeds the maximum allowed")
+			if intValue, err := strconv.Atoi(maxTag); err == nil && fieldValue.Int() > int64(intValue) {
+				message = "exceeds the maximum allowed"
 			}
 		}
 
 		if minTag := tag.Get(MinTag); minTag != "" {
-			minValue, err := strconv.Atoi(minTag)
-			if err == nil && fieldValue.Int() < int64(minValue) {
-				messages = append(messages, "Value is below the minimum allowed")
+			if intValue, err := strconv.Atoi(minTag); err == nil && fieldValue.Int() < int64(intValue) {
+				message = "is below the minimum allowed"
 			}
 		}
 
 		if maxLenTag := tag.Get(MaxLenTag); maxLenTag != "" {
-			maxLength, err := strconv.Atoi(maxLenTag)
-			if err == nil && len(fieldValue.String()) > maxLength {
-				messages = append(messages, "Exceeds maximum length allowed")
+			if maxLength, err := strconv.Atoi(maxLenTag); err == nil && len(fieldValue.String()) > maxLength {
+				message = "exceeds maximum length allowed"
 			}
 		}
 
-		if minLenTag := tag.Get(MinLenTag); minLenTag != "" {
-			minLength, err := strconv.Atoi(minLenTag)
-			if err == nil && len(fieldValue.String()) < minLength {
-				messages = append(messages, "Below the minimum length allowed")
-			}
+		if emailTag := tag.Get(EmailTag); emailTag != "" && !isValidEmail(fieldValue.String()) {
+			message = "has an invalid email format"
 		}
 
-		if emailTag := tag.Get(EmailTag); emailTag != "" {
-			if !isValidEmail(fieldValue.String()) {
-				messages = append(messages, "Invalid email format")
-			}
-		}
-
-		// Field is valid if messages are empty
-		isValid := len(messages) == 0
+		// Field is valid if message is empty
+		isValid := message == ""
 
 		results[i] = ValidationResult{
 			Field:   fieldName,
 			IsValid: isValid,
-			Message: fmt.Sprintf("%s: %s", fieldName, strings.Join(messages, ", ")),
+			Message: fmt.Sprintf("%s %s", fieldName, message),
 		}
 	}
 
@@ -111,7 +96,7 @@ func main() {
 	member := AvengersMember{
 		Name:  "Iron Man",
 		Age:   45,
-		Email: "ironman@example.com",
+		Email: "",
 	}
 
 	validationResults := ValidateStruct(member)
