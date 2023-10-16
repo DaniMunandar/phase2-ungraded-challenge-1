@@ -96,7 +96,7 @@ func main() {
 	member := AvengersMember{
 		Name:  "Iron Man",
 		Age:   45,
-		Email: "",
+		Email: "ironman@example.com",
 	}
 
 	validationResults := ValidateStruct(member)
